@@ -1,5 +1,5 @@
 [package]
-name = "winapi_test"
+name = "winapi_interface"
 version = "0.1.0"
 edition = "2021"
 

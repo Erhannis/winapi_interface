@@ -6,7 +6,7 @@
             "type": "cppvsdbg",
             "request": "launch",
             "preLaunchTask": "rust: cargo build",
-            "program": "${workspaceRoot}/target/debug/winapi_test.exe",
+            "program": "${workspaceRoot}/target/debug/winapi_interface.exe",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceRoot}",
@@ -18,7 +18,7 @@
             "type": "lldb",
             "request": "launch",
             "preLaunchTask": "rust: cargo build",
-            "program": "${workspaceRoot}/target/debug/winapi_test",
+            "program": "${workspaceRoot}/target/debug/winapi_interface",
             "args": [],
             "cwd": "${workspaceRoot}",
         }
