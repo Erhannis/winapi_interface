@@ -120,6 +120,11 @@ fn main() -> eframe::Result {
 
 use derive_more::Display;
 
+struct TestStruct {
+  x: i32,
+  y: i32,
+}
+
 #[derive(Display, Debug)]
 // #[display("{self:?}")] // Forgot logText would recurse
 #[display("{:?},{},{},{},{}", self.selectedHwnd, self.x, self.y, self.sx, self.sy)]
@@ -131,6 +136,7 @@ struct MyApp {
     sx: i32,
     sy: i32,
     tempString: String,
+    test: TestStruct,
 }
 
 impl Default for MyApp {
@@ -143,6 +149,7 @@ impl Default for MyApp {
             sx: 0,
             sy: 0,
             tempString: "".to_string(),
+            test: TestStruct { x: 10, y: 20 },
         }
     }
 }
@@ -168,10 +175,31 @@ impl eframe::App for MyApp {
                     }
                 }
                 ui.add(ValidatingValue::new(
-                    &mut self.x,
-                    |f| {s!("{f}")},
-                    |str| {str.parse::<i32>().ok()}
-                )); //DUMMY
+                    &mut self.test,
+                    |f| {s!("{f.x},{f.y}")},
+                    |str| {
+                      let p = str.split(',');
+                      if p.count() != 2 {
+                        return None;
+                      }
+                      let xs = p.next();
+                      if xs == None {return None;}
+                      let xs = xs.unwrap();
+
+                      let ys = p.next();
+                      if ys == None {return None;}
+                      let ys = ys.unwrap();
+
+                      let x = xs.parse();
+                      let y = ys.parse();
+                      if let Ok(x) = x {
+                        if let Ok(y) = y {
+                          return Some(TestStruct {x: x, y: y});
+                        }
+                      }
+                      return None;
+                    }
+                ));
             });
             if ui.button("Get window under mouse").focus_clicked() {
                 match (|| -> Result<HWND, Error> {

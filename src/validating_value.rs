@@ -35,7 +35,8 @@ fn set<'a, T>(get_set_value: &mut GetSetValue<'a, T>, value: &'a T) {
 /// ```
 #[must_use = "You should put this widget in an ui with `ui.add(widget);`"]
 pub struct ValidatingValue<'a, T> {
-    get_set_value: GetSetValue<'a, T>,
+    external_value: &'a mut T,
+    updated_value: Option<T>,
     formatter: Formatter<'a, T>,
     validater: Validater<'a, T>,
     update_while_editing: bool, //CHECK What's this?
@@ -47,23 +48,9 @@ impl<'a, T: 'a> ValidatingValue<'a, T> {
         formatter: impl 'a + Fn(&T) -> String,
         validater: impl 'a + Fn(&str) -> Option<T>,
     ) -> Self {
-        let slf = Self::from_get_set(move |v: Option<&'a T>| {
-            if let Some(v) = v {
-                *value = v;
-            }
-            value
-        }, formatter, validater);
-
-        slf
-    }
-
-    pub fn from_get_set(
-        get_set_value: impl 'a + FnMut(Option<&'a T>) -> &'a T,
-        formatter: impl 'a + Fn(&T) -> String,
-        validater: impl 'a + Fn(&str) -> Option<T>,
-    ) -> Self {
         Self {
-            get_set_value: Box::new(get_set_value),
+            external_value: value,
+            updated_value: None,
             formatter: Box::new(formatter),
             validater: Box::new(validater),
             update_while_editing: true,
@@ -86,13 +73,13 @@ impl<'a, T: 'a> ValidatingValue<'a, T> {
 impl<'a, T> Widget for ValidatingValue<'a, T> {
     fn ui(self, ui: &mut Ui) -> Response {
         let Self {
-            mut get_set_value,
+            external_value,
+            mut updated_value,
             formatter,
             validater,
             update_while_editing,
         } = self;
 
-        let shift = ui.input(|i| i.modifiers.shift_only());
         // The widget has the same ID whether it's in edit or button mode.
         let id = ui.next_auto_id();
 
@@ -109,9 +96,8 @@ impl<'a, T> Widget for ValidatingValue<'a, T> {
             ui.data_mut(|data| data.remove::<String>(id));
         }
 
-        let old_value_text = formatter(&get(&mut get_set_value)); //DUMMY This means the formatting *matters* - change this or at least document it
-        let value = get(&mut get_set_value);
-        let aim_rad = ui.input(|i| i.aim_radius() as f64);
+        let old_value_text = formatter(updated_value.as_ref().unwrap_or(external_value)); //DUMMY This means the formatting *matters* - change this or at least document it
+        let value = updated_value.as_ref().unwrap_or(external_value);
 
         let value_text = formatter(&value);
 
@@ -123,8 +109,8 @@ impl<'a, T> Widget for ValidatingValue<'a, T> {
                 // We were editing the value as text last frame, but lost focus.
                 // Make sure we applied the last text value:
                 let parsed_value = validater(&value_text);
-                if let Some(mut parsed_value) = parsed_value {
-                    set(&mut get_set_value, &parsed_value);
+                if let Some(parsed_value) = parsed_value {
+                    updated_value = Some(parsed_value);
                 }
             }
         }
@@ -156,8 +142,8 @@ impl<'a, T> Widget for ValidatingValue<'a, T> {
             };
             if update {
                 let parsed_value = validater(&value_text);
-                if let Some(mut parsed_value) = parsed_value {
-                    set(&mut get_set_value, &parsed_value);
+                if let Some(parsed_value) = parsed_value {
+                    updated_value = Some(parsed_value);
                 }
             }
             ui.data_mut(|data| data.insert_temp(id, value_text));
@@ -192,7 +178,7 @@ impl<'a, T> Widget for ValidatingValue<'a, T> {
             response
         };
 
-        response.changed = formatter(&get(&mut get_set_value)) != old_value_text; //DITTO //DUMMY Formatter matters, suboptimal
+        response.changed = formatter(updated_value.as_ref().unwrap_or(external_value)) != old_value_text; //DITTO //DUMMY Formatter matters, suboptimal
 
         //DUMMY Check this stuff
         #[cfg(feature = "accesskit")]
@@ -241,6 +227,10 @@ impl<'a, T> Widget for ValidatingValue<'a, T> {
                 builder.set_value(value_text);
             }
         });
+
+        if let Some(updated_value) = updated_value {
+            *external_value = updated_value;
+        }
 
         response
     }
