@@ -1,0 +1,16 @@
+[package]
+name = "winapi_test"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+eframe = "0.28.1"
+env_logger = "0.11.5"
+log = "0.4.22"
+interpol = "0.2.1"
+derive_more = { version = "1", features = ["display"] }
+
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3.9", features = ["winuser"] }
