@@ -5,6 +5,7 @@ use std::mem::MaybeUninit;
 use std::{thread, time};
 use eframe::egui::{self, Response};
 use log::info;
+use parse_int::parse;
 use winapi::shared::windef::{HMENU, HMENU__, HWND, LPRECT, POINT, RECT};
 use winapi::shared::minwindef::{LPARAM};
 use winapi::um::winuser::{HWND_NOTOPMOST, HWND_TOP, HWND_TOPMOST, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER, WINDOWINFO, WS_EX_TOPMOST};
@@ -136,7 +137,6 @@ struct MyApp {
     sx: i32,
     sy: i32,
     tempString: String,
-    test: TestStruct,
 }
 
 impl Default for MyApp {
@@ -149,7 +149,6 @@ impl Default for MyApp {
             sx: 0,
             sy: 0,
             tempString: "".to_string(),
-            test: TestStruct { x: 10, y: 20 },
         }
     }
 }
@@ -157,45 +156,23 @@ impl Default for MyApp {
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.label(format!("Selected hwnd {:?}", self.selectedHwnd));
             ui.horizontal(|ui| {
-                if ui.button("Set hwnd").focus_clicked() {
-                    match (|| -> Result<HWND, <usize as std::str::FromStr>::Err> {
-                        let res = self.tempString.parse::<usize>()?;
-                        return Ok(res as HWND);
-                    })() {
-                        Ok(hwnd) => {
-                            self.selectedHwnd = Some(hwnd);
-                            self.logText = "".to_string();
-                        },
-                        Err(e) => {
-                            self.selectedHwnd = None;
-                            self.logText = e.to_string();
-                        },
-                    }
-                }
+                ui.label("Selected hwnd");
                 ui.add(ValidatingValue::new(
-                    &mut self.test,
-                    |f| {s!("{f.x},{f.y}")},
-                    |str| {
-                      let mut p = str.split(',');
-                      
-                      let xs = p.next();
-                      if xs == None {return None;}
-                      let xs = xs.unwrap();
-
-                      let ys = p.next();
-                      if ys == None {return None;}
-                      let ys = ys.unwrap();
-
-                      let x = xs.parse();
-                      let y = ys.parse();
-                      if let Ok(x) = x {
-                        if let Ok(y) = y {
-                          return Some(TestStruct {x: x, y: y});
+                    &mut self.selectedHwnd,
+                    |x| {
+                        if let Some(x) = x {
+                            return format!("0x{:X}", *x as usize);
+                        } else {
+                            return "none".to_string();
                         }
-                      }
-                      return None;
+                    },
+                    |str| {
+                        if let Some(x) = parse::<usize>(str).ok() {
+                            return Some(Some(x as HWND));
+                        } else {
+                            return None;
+                        }
                     }
                 ));
             });
