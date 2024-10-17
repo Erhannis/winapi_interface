@@ -125,7 +125,7 @@ struct TestStruct {
   y: i32,
 }
 
-#[derive(Display, Debug)]
+#[derive(Display)]
 // #[display("{self:?}")] // Forgot logText would recurse
 #[display("{:?},{},{},{},{}", self.selectedHwnd, self.x, self.y, self.sx, self.sy)]
 struct MyApp {
@@ -178,10 +178,8 @@ impl eframe::App for MyApp {
                     &mut self.test,
                     |f| {s!("{f.x},{f.y}")},
                     |str| {
-                      let p = str.split(',');
-                      if p.count() != 2 {
-                        return None;
-                      }
+                      let mut p = str.split(',');
+                      
                       let xs = p.next();
                       if xs == None {return None;}
                       let xs = xs.unwrap();

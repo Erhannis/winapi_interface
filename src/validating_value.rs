@@ -53,7 +53,7 @@ impl<'a, T: 'a> ValidatingValue<'a, T> {
             updated_value: None,
             formatter: Box::new(formatter),
             validater: Box::new(validater),
-            update_while_editing: true,
+            update_while_editing: false,
         }
     }
 
